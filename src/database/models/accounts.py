@@ -121,6 +121,11 @@ class UserModel(Base):
         validators.validate_password_strength(raw_password)
         self._hashed_password = hash_password(raw_password)
 
+    def set_password(self, raw_password: str) -> None:
+        """Explicit helper to set (validate + hash) a user's password."""
+        # reuse the password setter for validation and hashing
+        self.password = raw_password
+
     def verify_password(self, raw_password: str) -> bool:
         """
         Verify the provided password against the stored hashed password.
