@@ -154,7 +154,11 @@ async def activate(
         )
 
     user.is_active = True
-    await db.execute(delete(ActivationTokenModel).where(ActivationTokenModel.id == cast(int, token_record.id)))
+    await db.execute(
+        delete(ActivationTokenModel).where(
+            ActivationTokenModel.id == cast(int, token_record.id)
+        )
+    )
     await db.commit()
 
     return MessageResponseSchema(message="User account activated successfully.")
@@ -173,7 +177,7 @@ async def request_password_reset(
     """Request a password reset token."""
     stmt = select(UserModel).where(
         UserModel.email == reset_request.email,
-        UserModel.is_active == True
+        UserModel.is_active == True  # noqa: E712
     )
     result = await db.execute(stmt)
     user = result.scalars().first()
@@ -186,7 +190,13 @@ async def request_password_reset(
         existing_token = result_existing.scalars().first()
 
         if existing_token:
-            await db.execute(delete(PasswordResetTokenModel).where(PasswordResetTokenModel.id == cast(int, existing_token.id)))
+            await db.execute(
+                delete(PasswordResetTokenModel).where(
+                    PasswordResetTokenModel.id == cast(
+                        int, existing_token.id
+                    )
+                )
+            )
 
         new_reset_token = PasswordResetTokenModel(user_id=cast(int, user.id))
         db.add(new_reset_token)
@@ -225,9 +235,18 @@ async def complete_password_reset(
         result_token = await db.execute(stmt_token)
         token_record = result_token.scalars().first()
 
-        if not token_record or token_record.token != reset_data.token:
+        if (
+            not token_record
+            or token_record.token != reset_data.token
+        ):
             if token_record:
-                await db.execute(delete(PasswordResetTokenModel).where(PasswordResetTokenModel.id == cast(int, token_record.id)))
+                await db.execute(
+                    delete(PasswordResetTokenModel).where(
+                        PasswordResetTokenModel.id == cast(
+                            int, token_record.id
+                        )
+                    )
+                )
                 await db.commit()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -239,7 +258,11 @@ async def complete_password_reset(
             expires_at = expires_at.replace(tzinfo=timezone.utc)
 
         if expires_at <= datetime.now(timezone.utc):
-            await db.execute(delete(PasswordResetTokenModel).where(PasswordResetTokenModel.id == cast(int, token_record.id)))
+            await db.execute(
+                delete(PasswordResetTokenModel).where(
+                    PasswordResetTokenModel.id == cast(int, token_record.id)
+                )
+            )
             await db.commit()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -247,7 +270,11 @@ async def complete_password_reset(
             )
 
         user.password = reset_data.password
-        await db.execute(delete(PasswordResetTokenModel).where(PasswordResetTokenModel.id == cast(int, token_record.id)))
+        await db.execute(
+            delete(PasswordResetTokenModel).where(
+                PasswordResetTokenModel.id == cast(int, token_record.id)
+            )
+        )
         await db.commit()
 
         return MessageResponseSchema(message="Password reset successfully.")
@@ -380,7 +407,7 @@ async def refresh_token(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Token has expired."
